@@ -5,8 +5,8 @@
 #include "esp_err.h"
 
 // I2C 配置参数
-#define I2C_MASTER_SCL_IO           20               // I2C SCL 对应 ESP32-S3 的 GPIO (请根据实际连线修改)
-#define I2C_MASTER_SDA_IO           21               // I2C SDA 对应 ESP32-S3 的 GPIO (请根据实际连线修改)
+#define I2C_MASTER_SCL_IO           1               // I2C SCL 对应 ESP32-S3 的 GPIO (请根据实际连线修改)
+#define I2C_MASTER_SDA_IO           2               // I2C SDA 对应 ESP32-S3 的 GPIO (请根据实际连线修改)
 #define I2C_MASTER_NUM              I2C_NUM_0       // 使用 I2C 端口 0
 #define I2C_MASTER_FREQ_HZ          400000          // I2C 通信频率 400kHz
 #define I2C_MASTER_TX_BUF_DISABLE   0               // 不使用发送缓冲区
@@ -19,6 +19,10 @@
 
 // MPU6050 核心寄存器地址
 #define MPU6050_REG_PWR_MGMT_1      0x6B            // 电源管理寄存器 1
+#define MPU6050_REG_SMPLRT_DIV      0x19            // 采样率分频器寄存器
+#define MPU6050_REG_CONFIG          0x1A            // 配置寄存器（数字低通滤波器）
+#define MPU6050_REG_GYRO_CONFIG     0x1B            // 陀螺仪配置寄存器
+#define MPU6050_REG_ACCEL_CONFIG    0x1C            // 加速度计配置寄存器
 #define MPU6050_REG_ACCEL_XOUT_H    0x3B            // 加速度计 X 轴高位寄存器
 #define MPU6050_REG_GYRO_XOUT_H     0x43            // 陀螺仪 X 轴高位寄存器
 

@@ -1,62 +1,111 @@
 #include <stdio.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <driver/gpio.h>
-#include "pwm.h"
-#include "motor.h"
-#include "motor2.h"
+#include <math.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "oled.h"
+#include "pwm.h"
+#include "motor2.h"
 #include "mpu6050.h"
-#include "OLED.h"
-#include "OLED_Data.h"
+#include "pid.h"
 
 static const char *TAG = "MAIN";
 
-void app_main(void)
-{
-    pwm_init(); 
+// --- 全局共享数据 ---
+volatile float g_pitch = 0.0f;
+volatile float g_pwm = 0.0f;
+
+// --- 调节参数 (根据你的硬件修改) ---
+#define TARGET_ANGLE    0.0f     // 机械中值
+#define BAL_KP          150.0f    // 比例
+#define BAL_KI          0.0f      // 积分项
+#define BAL_KD          1.5f      // 阻尼
+#define PWM_LIMIT       1023.0f   // 10位PWM
+#define DEADZONE        200       // 电机起步死区
+
+// OLED 显示任务：独立运行，不卡主循环
+void oled_display_task(void *pvParameters) {
     OLED_Init();
-    A1_Control(1, 6000); // 让电机以一半速度正转
-    A0_Control(1, 6000); // 让电机以一半速度正转
-    vTaskDelay(1000); // 主循环挂起
-    
-    set_angle(0);
-    vTaskDelay(100);
-    set_angle(90);
-    vTaskDelay(100);
-    set_angle(180);
-    vTaskDelay(100);
-    set_angle2(0);
-    vTaskDelay(100);
-    set_angle2(90);
-    vTaskDelay(100);
-    set_angle2(180);
-    vTaskDelay(100);
+    OLED_Clear();
+    OLED_ShowString(0, 0, "Pitch:", OLED_8X16);
+    OLED_ShowString(0, 16, "PWMOut:", OLED_8X16);
+    OLED_Update();
 
-    esp_err_t err = mpu6050_init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "MPU6050 init failed. System halt.");
-        while(1) { vTaskDelay(1000 / portTICK_PERIOD_MS); } // 初始化失败则卡死
-    }
-
-    mpu6050_data_t sensor_data;
-    while(1)
-    {
-        OLED_DrawRectangle(56, 8, 16, 40, OLED_FILLED); //方眼
-        OLED_Update();
-        vTaskDelay(100);
-        err = mpu6050_read_data(&sensor_data);
-        if (err == ESP_OK) {
-            printf("Accel: X:%6d, Y:%6d, Z:%6d | Gyro: X:%6d, Y:%6d, Z:%6d\n",
-                   sensor_data.accel_x, sensor_data.accel_y, sensor_data.accel_z,
-                   sensor_data.gyro_x, sensor_data.gyro_y, sensor_data.gyro_z);
-        } else {
-            ESP_LOGE(TAG, "Failed to read data from MPU6050");
-        }
+    while (1) {
+        // 局部刷新数字区域，防止闪烁
+        OLED_ClearArea(64, 0, 64, 32); 
+        OLED_Printf(64, 0, OLED_8X16, "%.1f", g_pitch);
+        OLED_Printf(64, 16, OLED_8X16, "%.0f", g_pwm);
+        OLED_UpdateArea(64, 0, 64, 32);
         
-        // 延时 100 毫秒
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(100)); // 10Hz 刷新即可
     }
-
 }
 
+void app_main(void) {
+    // 1. 硬件基础初始化
+    pwm_init();
+    
+    // 2. MPU6050 唤醒重试逻辑
+    esp_err_t err;
+    int retry = 0;
+    do {
+        err = mpu6050_init();
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "MPU6050 retry %d...", ++retry);
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+    } while (err != ESP_OK && retry < 5);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "MPU6050 FAIL. Check SDA(GPIO2)/SCL(GPIO1) & Power!");
+        return;
+    }
+
+    // 3. 启动 OLED 任务
+    xTaskCreate(oled_display_task, "oled_task", 4096, NULL, 1, NULL);
+
+    // 4. PID 初始化
+    pid_ctrl_t balance_pid;
+    pid_init(&balance_pid, BAL_KP, BAL_KI, BAL_KD, PWM_LIMIT, TARGET_ANGLE);
+
+    mpu6050_data_t imu_raw;
+    int64_t last_time = esp_timer_get_time();
+
+    while (1) {
+        // 计算精确的时间步长 dt
+        int64_t now = esp_timer_get_time();
+        float dt = (float)(now - last_time) / 1000000.0f;
+        last_time = now;
+
+        if (mpu6050_read_data(&imu_raw) == ESP_OK) {
+            // 姿态解算
+            g_pitch = imu_get_pitch_angle(imu_raw.accel_x, imu_raw.accel_z, imu_raw.gyro_y, dt);
+            float gyro_rate_phys = (float)imu_raw.gyro_y / 32768.0f * 2000.0f;
+
+            // 直立环计算
+            float output = balance_pd_compute(&balance_pid, g_pitch, gyro_rate_phys);
+            g_pwm = output;
+
+            // 安全防护：角度过大停止电机
+            if (fabs(g_pitch) > 30.0f) {
+                A0_Control(1, 0);
+                A1_Control(1, 0);
+            } else {
+                uint8_t dir = (output >= 0) ? 1 : 0;
+                uint32_t speed = (uint32_t)fabs(output);
+                
+                // 死区补偿
+                if (speed > 10) speed += DEADZONE;
+                if (speed > PWM_LIMIT) speed = PWM_LIMIT;
+
+                A0_Control(dir, speed);
+                A1_Control(dir, speed);
+            }
+        }
+        
+        // 维持 200Hz 的稳定控制频率
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}

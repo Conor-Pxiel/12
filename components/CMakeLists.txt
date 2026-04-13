@@ -3,7 +3,8 @@ set(src_dirs
             PWM
             MOTOR2
             MPU6050
-            OLED)
+            OLED
+            PID)
 
 
 set(include_dirs
@@ -11,7 +12,8 @@ set(include_dirs
             PWM
             MOTOR2
             MPU6050
-            OLED)
+            OLED
+            PID)
 
 set(requires
             driver)

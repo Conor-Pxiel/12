@@ -1,0 +1,2 @@
+source C:/Users/Conor/Desktop/esp32project/MOTOR4/build/bootloader/gdbinit/symbols
+source C:/Users/Conor/Desktop/esp32project/MOTOR4/build/bootloader/gdbinit/connect

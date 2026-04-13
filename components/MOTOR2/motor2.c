@@ -35,7 +35,7 @@ void A1_Control(uint8_t dir_R, uint32_t speed)
     else // 反转
     {
         gpio_set_level(GPIO_BIN1, 0);
-        gpio_set_level(GPIO_BIN1, 1);
+        gpio_set_level(GPIO_BIN2, 1);
     }
 
     if(speed > ((1 << LEDC_DUTY_RES) - 1)) {

@@ -25,8 +25,8 @@ void pwm_init(void)
 
     ledc_timer_config_t ledctimer_structure2 = {
         .clk_cfg = LEDC_AUTO_CLK,
-        .duty_resolution = LEDC_TIMER_13_BIT,
-        .freq_hz = 5000,
+        .duty_resolution = LEDC_TIMER_10_BIT,
+        .freq_hz = 50,
         .speed_mode = LEDC_LOW_SPEED_MODE,
         .timer_num = LEDC_TIMER_0,
     };
@@ -61,23 +61,23 @@ void pwm_init(void)
         .channel = PWMA_CHANNEL,           // 使用通道0
         .duty = 0,                         // 初始占空比为0（电机不转）
         .flags.output_invert = 0,
-        .gpio_num = GPIO_PWMA,             // 输出到GPIO1
+        .gpio_num = GPIO_PWMA,             // 输出到GPIO
         .hpoint = 0,
         .intr_type = LEDC_INTR_DISABLE,    // 禁用中断
         .speed_mode = PWMA_MODE,           // 通道模式   
-        .timer_sel = PWMA_TIMER,           // 绑定到定时器1  
+        .timer_sel = PWMA_TIMER,           // 绑定到定时器
     };
     ledc_channel_config(&ledc_channel); // 应用通道配置
 
     ledc_channel_config_t ledc_channel_B = {
-        .channel = PWMB_CHANNEL,           // 使用通道1
+        .channel = PWMB_CHANNEL,           // 使用通道3
         .duty = 0,                         // 初始占空比为0（电机不转）
         .flags.output_invert = 0,
-        .gpio_num = GPIO_PWMB,             // 输出到GPIO1
+        .gpio_num = GPIO_PWMB,             // 输出到GPIO
         .hpoint = 0,
         .intr_type = LEDC_INTR_DISABLE,    // 禁用中断
         .speed_mode = PWMB_MODE,           // 通道模式   
-        .timer_sel = PWMB_TIMER,           // 绑定到定时器1  
+        .timer_sel = PWMB_TIMER,           // 绑定到定时器 
     };
     ledc_channel_config(&ledc_channel_B); // 应用通道配置
 }

@@ -5,7 +5,7 @@
 #include "pwm.h"
 
 void A0_Control(uint8_t dir_L, uint32_t speed);
-void A1_Control(uint8_t dir_L, uint32_t speed);
+void A1_Control(uint8_t dir_R, uint32_t speed);
 
 
 #endif

@@ -54,7 +54,40 @@ esp_err_t mpu6050_init(void)
         return ret;
     }
 
-    ESP_LOGI(TAG, "MPU6050 initialized successfully");
+    // 5. 配置采样率为1000Hz (1ms采样)
+    // 采样率 = 8kHz / (1 + SMPLRT_DIV)
+    // 1000 = 8000 / (1 + 7)
+    ret = mpu6050_write_byte(MPU6050_REG_SMPLRT_DIV, 7);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set sample rate");
+        return ret;
+    }
+
+    // 6. 禁用数字低通滤波器 (DLPF)
+    // DLPF_CFG = 0: 禁用DLPF，内部采样率8kHz
+    ret = mpu6050_write_byte(MPU6050_REG_CONFIG, 0x00);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to disable DLPF");
+        return ret;
+    }
+
+    // 7. 配置陀螺仪量程为±2000°/s (最大灵敏度)
+    // FS_SEL = 3: ±2000°/s
+    ret = mpu6050_write_byte(MPU6050_REG_GYRO_CONFIG, 0x18);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set gyro range");
+        return ret;
+    }
+
+    // 8. 配置加速度计量程为±8g
+    // AFS_SEL = 2: ±8g
+    ret = mpu6050_write_byte(MPU6050_REG_ACCEL_CONFIG, 0x10);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set accel range");
+        return ret;
+    }
+
+    ESP_LOGI(TAG, "MPU6050 initialized successfully (1000Hz, DLPF disabled)");
     return ESP_OK;
 }
 

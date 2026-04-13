@@ -71,8 +71,8 @@ uint8_t OLED_DisplayBuf[8][128];
  
  
 /*引脚定义*/
-#define GPIO_SDA GPIO_NUM_36
-#define GPIO_SCL GPIO_NUM_35
+#define GPIO_SDA GPIO_NUM_14
+#define GPIO_SCL GPIO_NUM_13
  
 #define OLED_WIDTH 128
 #define OLED_HEIGHT 64
