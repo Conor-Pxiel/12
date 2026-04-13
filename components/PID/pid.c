@@ -30,9 +30,9 @@ float imu_get_pitch_angle(int16_t accel_x, int16_t accel_z, int16_t gyro_y, floa
     static float pitch = 0.0f;
     // 加速度计计算角度 (atan2)
     float accel_angle = atan2f(-(float)accel_x, -(float)accel_z) / 3.1415926f * 180; 
-    accel_angle += 0.5;
+    accel_angle += 0;
     // 陀螺仪角速度
-    gyro_y -= 16;
+    gyro_y -= 1.5;
     float gyro_rate = (float)gyro_y / 32768.0f * 2000.0f; 
 
     // 互补滤波：98% 信任陀螺仪积分，2% 信任加速度计纠偏

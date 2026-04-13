@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "GPIO",
-    "project_version":    "ed7112d-dirty",
+    "project_version":    "160d928-dirty",
     "project_path":       "C:/Users/Conor/Desktop/esp32project/MOTOR4",
     "idf_path":           "C:/Espressif/frameworks/esp-idf-v5.5.3",
     "build_dir":          "C:/Users/Conor/Desktop/esp32project/MOTOR4/build",

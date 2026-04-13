@@ -15,6 +15,7 @@ static const char *TAG = "MAIN";
 // --- 全局共享数据 ---
 volatile float g_pitch = 0.0f;
 volatile float g_pwm = 0.0f;
+volatile float g_gyro_rate = 0.0f;
 
 // --- 调节参数 (根据你的硬件修改) ---
 #define TARGET_ANGLE    0.0f     // 机械中值
@@ -22,22 +23,26 @@ volatile float g_pwm = 0.0f;
 #define BAL_KI          0.0f      // 积分项
 #define BAL_KD          1.5f      // 阻尼
 #define PWM_LIMIT       1023.0f   // 10位PWM
-#define DEADZONE        200       // 电机起步死区
+#define DEADZONE        350       // 电机起步死区
 
 // OLED 显示任务：独立运行，不卡主循环
 void oled_display_task(void *pvParameters) {
     OLED_Init();
     OLED_Clear();
-    OLED_ShowString(0, 0, "Pitch:", OLED_8X16);
-    OLED_ShowString(0, 16, "PWMOut:", OLED_8X16);
+    //OLED_ShowString(0, 0, "Pitch:", OLED_8X16);
+    //OLED_ShowString(0, 16, "PWMOut:", OLED_8X16);
+    //OLED_ShowString(0, 32, "GyroRate:", OLED_8X16);
+    OLED_DrawCircle(64, 32, 18, OLED_FILLED);
     OLED_Update();
 
     while (1) {
         // 局部刷新数字区域，防止闪烁
-        OLED_ClearArea(64, 0, 64, 32); 
-        OLED_Printf(64, 0, OLED_8X16, "%.1f", g_pitch);
-        OLED_Printf(64, 16, OLED_8X16, "%.0f", g_pwm);
-        OLED_UpdateArea(64, 0, 64, 32);
+        //OLED_ClearArea(64, 0, 64, 32); 
+        //OLED_Printf(64, 0, OLED_8X16, "%.1f", g_pitch);
+        //OLED_Printf(64, 16, OLED_8X16, "%.0f", g_pwm);
+        //OLED_Printf(64, 32, OLED_8X16, "%.1f", g_gyro_rate);
+        //OLED_UpdateArea(64, 0, 64, 32);
+        //OLED_Update();
         
         vTaskDelay(pdMS_TO_TICKS(100)); // 10Hz 刷新即可
     }
@@ -83,6 +88,12 @@ void app_main(void) {
             // 姿态解算
             g_pitch = imu_get_pitch_angle(imu_raw.accel_x, imu_raw.accel_z, imu_raw.gyro_y, dt);
             float gyro_rate_phys = (float)imu_raw.gyro_y / 32768.0f * 2000.0f;
+            g_gyro_rate = gyro_rate_phys;
+            
+            // 调试：检查陀螺仪数据是否有效
+            if (isnan(gyro_rate_phys) || isinf(gyro_rate_phys)) {
+                g_gyro_rate = 0.0f;  // 防止显示无效值
+            }
 
             // 直立环计算
             float output = balance_pd_compute(&balance_pid, g_pitch, gyro_rate_phys);
