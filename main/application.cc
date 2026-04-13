@@ -373,14 +373,14 @@ void Application::StopListening() {
 static void oled2_update_task(void* arg) {
     ESP_LOGI(OLED2_TASK_TAG, "Starting OLED2 update task");
     
-    // 先显示开机表情45秒
+    // 先显示开机表情20秒
     ESP_LOGI(OLED2_TASK_TAG, "Showing startup image for 45 seconds");
     OLED_Clear();
     OLED_DrawCircle(64, 32, 18, OLED_FILLED);  // 开机表情
     OLED_Update();
     vTaskDelay(pdMS_TO_TICKS(20000)); // 20秒
     
-    // 45秒后开始定时切换内容
+    // 20秒后开始定时切换内容
     while (oled2_config.running) {
         OLED_Clear();
         
